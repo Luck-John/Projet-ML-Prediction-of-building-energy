@@ -24,7 +24,7 @@ Développer un **modèle de Machine Learning** pour:
 ## 👥 Équipe du Projet
 
 | Collaborateur | GitHub |
-|---|---|---|
+|---|---|
 | Malick SENE | [@malickseneisep2](https://github.com/malickseneisep2) |
 | Ameth FAYE | [@ameth08faye](https://github.com/ameth08faye) |
 | Hildegarde Edima BIYENDA| [@HildaEDIMA](https://github.com/HildaEDIMA) |
