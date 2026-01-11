@@ -9,8 +9,6 @@ import mlflow.sklearn
 # Fixer tous les seeds pour reproductibilité maximale (déterminisme)
 os.environ['PYTHONHASHSEED'] = '42'
 np.random.seed(42)
-if hasattr(pd.np, 'random'):
-    pd.np.random.seed(42)
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
