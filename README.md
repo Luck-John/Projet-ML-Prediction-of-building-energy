@@ -1,55 +1,132 @@
-# Seattle Building Energy Prediction
+# 🏢 Building Energy Prediction - Seattle
 
-## 📋 Vue d'ensemble
+> **Prédire la consommation énergétique des bâtiments non-résidentiels de Seattle avec Machine Learning**
 
-Ce projet prédait la consommation totale d'énergie (`SiteEnergyUse(kBtu)`) des bâtiments non-résidentiels de Seattle. L'objectif est également d'évaluer la pertinence de l'`ENERGYSTARScore` dans la modélisation.
-
-**Dataset:** 2016 Building Energy Benchmarking Data (Seattle)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-green)](https://github.com/Luck-John/Projet-ML-Prediction-of-building-energy/actions)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009485.svg)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B.svg)](https://streamlit.io/)
 
 ---
 
-## 🏗️ Architecture du Projet
+## 🎯 Objectif du Projet
+
+Développer un **modèle de Machine Learning** pour:
+- ✅ Prédire la **consommation énergétique** (SiteEnergyUse en kBtu)
+- ✅ Évaluer la pertinence du **ENERGYSTARScore** dans la prédiction
+- ✅ Fournir une **API REST** et un **dashboard interactif**
+- ✅ Implémenter un **pipeline MLOps** robuste avec CI/CD
+
+**Dataset:** 2016 Building Energy Benchmarking (Seattle) - 1,553 bâtiments non-résidentiels
+
+---
+
+## 👥 Équipe du Projet
+
+| Collaborateur | Rôle | GitHub |
+|---|---|---|
+| Malick Sene | Lead ML Engineer | [@malickseneisep2](https://github.com/malickseneisep2) |
+| Ameth Faye | Data Engineer | [@ameth08faye](https://github.com/ameth08faye) |
+| Hilda Edima | ML Engineer | [@HildaEDIMA](https://github.com/HildaEDIMA) |
+| Albert Zinaba | DevOps / Fullstack | [@ZINABA-Albert](https://github.com/ZINABA-Albert) |
+
+---
+
+## 🚀 Quick Start
+
+### 1️⃣ Installation
+
+```bash
+# Cloner le repo
+git clone https://github.com/Luck-John/Projet-ML-Prediction-of-building-energy.git
+cd "Projet-ML-Prediction of building energy"
+
+# Créer virtualenv
+python -m venv .venv
+
+# Activer
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
+
+# Installer dépendances
+pip install -r requirements.txt
+```
+
+### 2️⃣ Démarrer l'API (FastAPI)
+
+```bash
+uvicorn src.api.main:app --reload
+# → http://localhost:8000/docs (Swagger UI)
+```
+
+### 3️⃣ Démarrer le Dashboard (Streamlit)
+
+```bash
+streamlit run src/dashboard/app.py
+# → http://localhost:8501
+```
+
+### 4️⃣ Lancer les Tests
+
+```bash
+pytest tests/ -v
+```
+
+### 5️⃣ Réentraîner le Modèle
+
+```bash
+python -m src.models.train
+```
+
+---
+
+## 📁 Structure du Projet
 
 ```
-project_root/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                 # Configuration CI/CD (GitHub Actions)
-├── artifacts/                     # Modèles entraînés et données
-│   ├── best_model_*.joblib
-│   ├── multi_model_ranking_*.joblib
-│   ├── X_train.joblib, X_test.joblib
-│   └── y_train.joblib, y_test.joblib
-├── configs/
-│   └── params.yaml                # Paramètres de configuration
-├── data/
-│   ├── raw/                       # Données brutes
+Projet ML-Prediction of building energy/
+│
+├── 📂 artifacts/                              ✅ MODÈLES & RÉSULTATS
+│   ├── model.joblib                           ✅ Model FINAL (24.6 MB)
+│   ├── best_params.joblib                     ✅ Hyperparamètres
+│   └── compare_report.joblib                  ✅ Rapport comparaison
+│
+├── 📂 .github/workflows/                      ✅ CI/CD GITHUB ACTIONS
+│   └── ci.yml                                 ✅ Pipeline automatique
+│
+├── 📂 data/                                   ✅ DONNÉES
+│   ├── processed/                             ✅ Données traitées
 │   │   └── 2016_Building_Energy_Benchmarking.csv
-│   └── processed/                 # Données nettoyées
+│   └── raw/                                   ✅ Données brutes
 │       └── 2016_Building_Energy_Benchmarking.csv
-├── notebooks/
-│   └── energy_01_analyse (5).ipynb   # Notebook de prototypage
-├── src/
+│
+├── 📂 notebooks/                              ✅ DOCUMENTATION
+│   └── energy_01_analyse (11).ipynb           ✅ RÉFÉRENCE MODÈLE
+│
+├── 📂 src/                                    ✅ CODE SOURCE
 │   ├── api/
-│   │   └── main.py                # API REST (FastAPI)
+│   │   └── main.py                            ✅ API FastAPI
+│   ├── dashboard/
+│   │   └── app.py                             ✅ Dashboard Streamlit
+│   ├── preprocessing/
+│   │   └── preprocessor.py                    ✅ Nettoyage données
 │   ├── features/
-│   │   └── engineer.py            # Feature engineering
-│   ├── models/
-│   │   ├── train.py               # Entraînement MLflow
-│   │   ├── evaluate.py            # Évaluation
-│   │   ├── inference.py           # Inférence
-│   │   ├── compare_pipelines.py   # Comparaison modèles
-│   │   └── multi_evaluate.py      # Multi-scénarios
-│   └── preprocessing/
-│       └── preprocessor.py        # Nettoyage & prétraitement
-├── tests/
-│   ├── conftest.py                # Fixture pytest
-│   ├── test_preprocess.py         # Tests prétraitement
-│   ├── test_models.py             # Tests modèles
-│   └── test_integration_metrics.py # Tests intégration
-├── requirements.txt               # Dépendances Python
-├── pytest.ini                     # Configuration pytest
-└── README.md                      # Ce fichier
+│   │   └── engineer.py                        ✅ Feature engineering
+│   └── models/
+│       ├── train.py                           ✅ Entraînement stacking
+│       ├── evaluate.py                        ✅ Évaluation
+│       └── compare_pipelines.py               ✅ Comparaison
+│
+├── 📂 tests/                                  ✅ TESTS UNITAIRES
+│   ├── test_preprocess.py                     ✅ Valide preprocessing
+│   ├── test_models.py                         ✅ Valide modèles
+│   └── test_integration_metrics.py            ✅ Tests intégration
+│
+├── 📄 requirements.txt                        ✅ Dépendances Python
+├── 📄 pytest.ini                              ✅ Config pytest
+├── 📄 .gitignore                              ✅ Fichiers à ignorer
+├── 📄 README.md                               ✅ Ce fichier (guide)
+├── 📄 ESSENTIAL_FILES.md                      ✅ Guide fichiers clés
+└── 📄 CLEANUP_AUDIT.md                        ✅ Audit du projet
 ```
 
 ---
