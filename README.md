@@ -23,12 +23,12 @@ Développer un **modèle de Machine Learning** pour:
 
 ## 👥 Équipe du Projet
 
-| Collaborateur | Rôle | GitHub |
+| Collaborateur | GitHub |
 |---|---|---|
-| Malick Sene | Lead ML Engineer | [@malickseneisep2](https://github.com/malickseneisep2) |
-| Ameth Faye | Data Engineer | [@ameth08faye](https://github.com/ameth08faye) |
-| Hilda Edima | ML Engineer | [@HildaEDIMA](https://github.com/HildaEDIMA) |
-| Albert Zinaba | DevOps / Fullstack | [@ZINABA-Albert](https://github.com/ZINABA-Albert) |
+| Malick SENE | [@malickseneisep2](https://github.com/malickseneisep2) |
+| Ameth FAYE | [@ameth08faye](https://github.com/ameth08faye) |
+| Hildegarde Edima BIYENDA| [@HildaEDIMA](https://github.com/HildaEDIMA) |
+| Albert ZINABA | [@ZINABA-Albert](https://github.com/ZINABA-Albert) |
 
 ---
 
