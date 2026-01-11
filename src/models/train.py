@@ -10,7 +10,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, r2_score, mean_squared_error
+from sklearn.ensemble import StackingRegressor
+from sklearn.svm import LinearSVR
+from sklearn.ensemble import HistGradientBoostingRegressor
 import category_encoders as ce
+
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
 
 from src.preprocessing.preprocessor import preprocess_data, preprocess_df
 from src.features.engineer import engineer_features
@@ -18,6 +24,7 @@ from src.features.engineer import engineer_features
 # Config
 DATA_PATH = "data/processed/2016_Building_Energy_Benchmarking.csv"
 MODEL_ARTIFACT = "artifacts/model.joblib"
+ARTIFACTS_DIR = "artifacts"
 RANDOM_STATE = 42
 TARGET_COL = "SiteEnergyUse_log"
 
@@ -36,86 +43,165 @@ def prepare_xy(df: pd.DataFrame):
     return X, y
 
 
-def train_model(use_energy_star: bool = True, mlflow_experiment: str = "default"):
-    """Charge les données, applique preprocessing + feature engineering,
-    entraîne un modèle et logge les métriques + artefacts dans MLflow.
+def evaluate_performance(model, X, y, prefix="Test"):
+    y_pred = model.predict(X)
+    y_pred_real = np.exp(y_pred)
+    y_real = np.exp(y)
+    mape = mean_absolute_percentage_error(y_real, y_pred_real)
+    mae = mean_absolute_error(y_real, y_pred_real)
+    r2 = r2_score(y_real, y_pred_real)
+    # older sklearn versions may not accept `squared` kwarg
+    rmse_raw = mean_squared_error(y_real, y_pred_real)
+    rmse = float(np.sqrt(rmse_raw))
+    metrics = {
+        f"{prefix}_MAPE_Real": float(mape),
+        f"{prefix}_MAE_Real": float(mae),
+        f"{prefix}_R2_Real": float(r2),
+        f"{prefix}_RMSE_Real": float(rmse)
+    }
+    return metrics
+
+
+def train_model(use_energy_star: bool = True, mlflow_experiment: str = "energy_buildings"):
+    """Pipeline principal d'entraînement reproduisant le notebook (11).
+    Cette version entraîne les base learners, récupère leurs meilleurs
+    hyperparamètres puis construit et entraîne le StackingRegressor final
+    avec `LinearSVR(C=10)` comme meta-learner.
     """
-    # Désactiver le contexte git qui causa des problèmes
-    import os as os_module
-    os_module.environ['MLFLOW_TRACKING_URI'] = 'file:./mlruns'
-    os_module.environ['GIT_PYTHON_GIT_EXECUTABLE'] = ''
+    os.environ.setdefault('MLFLOW_TRACKING_URI', 'file:./mlruns')
 
     mlflow.set_experiment(mlflow_experiment)
 
+    # 1. Load & preprocess
+    print(">>> Loading data...")
     df = preprocess_data(DATA_PATH)
+    print(f"Shape after preprocess: {df.shape}")
+
+    # 2. Feature engineering
+    print(">>> Feature engineering...")
     df = engineer_features(df)
+    print(f"Shape after engineer: {df.shape}")
 
-    if not use_energy_star and "ENERGYSTARScore" in df.columns:
-        df = df.drop(columns=["ENERGYSTARScore"])
-
+    # 3. Prepare X, y and split
     X, y = prepare_xy(df)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE)
+    print(f"Train shape: {X_train.shape}, Test shape: {X_test.shape}")
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=RANDOM_STATE
-    )
-
-    # Target encoding des colonnes catégorielles (fit sur train seulement)
-    cat_cols = X_train.select_dtypes(include=["object", "category"]).columns.tolist()
+    # 4. Target encoding
+    cat_cols = X_train.select_dtypes(include=['object', 'category']).columns.tolist()
     if len(cat_cols) > 0:
         encoder = ce.TargetEncoder(cols=cat_cols, smoothing=10, handle_unknown='value')
-        X_train = encoder.fit_transform(X_train, y_train)
-        X_test = encoder.transform(X_test)
+        X_train_enc = encoder.fit_transform(X_train, y_train)
+        X_test_enc = encoder.transform(X_test)
     else:
         encoder = None
+        X_train_enc, X_test_enc = X_train.copy(), X_test.copy()
 
-    pipeline = Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("model", ExtraTreesRegressor(random_state=RANDOM_STATE, n_estimators=300, n_jobs=-1))
-    ])
-
-    param_grid = {
-        'model__n_estimators': [100, 200, 300],
-        'model__max_depth': [None, 10, 20]
+    # 5. Train base learners (grid search) - grids per notebook
+    models_config = {
+        'ExtraTrees': (
+            ExtraTreesRegressor(random_state=RANDOM_STATE),
+            {
+                'model__n_estimators': [100, 300, 500],
+                'model__max_depth': [None, 10, 20]
+            }
+        ),
+        'XGBoost': (
+            XGBRegressor(random_state=RANDOM_STATE, objective='reg:squarederror'),
+            {
+                'model__n_estimators': [100, 300],
+                'model__learning_rate': [0.01, 0.05],
+                'model__max_depth': [3, 6]
+            }
+        ),
+        'LightGBM': (
+            LGBMRegressor(random_state=RANDOM_STATE, verbose=-1),
+            {
+                'model__n_estimators': [100, 300],
+                'model__learning_rate': [0.01, 0.05],
+                'model__num_leaves': [31, 50]
+            }
+        ),
+        'HistGradientBoosting': (
+            HistGradientBoostingRegressor(random_state=RANDOM_STATE),
+            {
+                'model__learning_rate': [0.01, 0.05],
+                'model__max_iter': [100, 200]
+            }
+        )
     }
 
-    # Use neg_root_mean_squared_error for GridSearchCV (notebook 11 - ligne 1513)
-    grid = GridSearchCV(pipeline, param_grid, cv=5, scoring='neg_root_mean_squared_error', n_jobs=-1, refit=True)
+    best_params_storage = {}
+    trained_estimators = {}
 
-    # Train
-    grid.fit(X_train, y_train)
+    for name, (model_obj, params) in models_config.items():
+        print(f">>> GridSearch for {name}...")
+        pipe = Pipeline([('imputer', SimpleImputer(strategy='median')), ('model', model_obj)])
+        grid = GridSearchCV(pipe, params, cv=3, scoring='neg_root_mean_squared_error', n_jobs=-1, refit=True)
+        grid.fit(X_train_enc, y_train)
+        best = grid.best_estimator_
+        # store cleaned params
+        raw = grid.best_params_
+        clean = {k.replace('model__', ''): v for k, v in raw.items()}
+        best_params_storage[name] = clean
+        trained_estimators[name] = best.named_steps['model']
+        print(f"-> {name} best params: {clean}")
 
-    best = grid.best_estimator_
-    y_pred = best.predict(X_test)
+    # 6. Build base_learners for stacking using best params
+    base_learners = []
+    # ExtraTrees
+    et_params = best_params_storage.get('ExtraTrees', {})
+    base_learners.append(('et', ExtraTreesRegressor(random_state=RANDOM_STATE, **et_params)))
+    # XGBoost
+    xgb_params = best_params_storage.get('XGBoost', {})
+    base_learners.append(('xgb', XGBRegressor(random_state=RANDOM_STATE, objective='reg:squarederror', **xgb_params)))
+    # HistGradient
+    hgb_params = best_params_storage.get('HistGradientBoosting', {})
+    base_learners.append(('hgb', HistGradientBoostingRegressor(random_state=RANDOM_STATE, **hgb_params)))
+    # LightGBM
+    lgbm_params = best_params_storage.get('LightGBM', {})
+    base_learners.append(('lgbm', LGBMRegressor(random_state=RANDOM_STATE, verbose=-1, **lgbm_params)))
 
-    # back-transform if target is log
-    y_pred_real = np.exp(y_pred)
-    y_test_real = np.exp(y_test)
+    print(">>> Training final stacking model (this can take time)...")
+    final_stack = StackingRegressor(
+        estimators=base_learners,
+        final_estimator=LinearSVR(C=10, random_state=RANDOM_STATE, dual='auto', max_iter=10000),
+        cv=5,
+        n_jobs=-1,
+        passthrough=False
+    )
 
-    mape = mean_absolute_percentage_error(y_test_real, y_pred_real)
-    mae = mean_absolute_error(y_test_real, y_pred_real)
-    r2 = r2_score(y_test_real, y_pred_real)
+    final_stack.fit(X_train_enc, y_train)
 
-    # Try to log with MLflow, but don't fail if it doesn't work
+    # Evaluate final
+    metrics_train = evaluate_performance(final_stack, X_train_enc, y_train, "Train")
+    metrics_test = evaluate_performance(final_stack, X_test_enc, y_test, "Test")
+
+    print(f"Final Test MAPE: {metrics_test['Test_MAPE_Real']:.4f}")
+
+    # 7. Save artifacts
+    os.makedirs(ARTIFACTS_DIR, exist_ok=True)
+    model_dict = {
+        'model': final_stack,
+        'encoder': encoder,
+        'best_params': best_params_storage,
+        'target_col': TARGET_COL
+    }
+    joblib.dump(model_dict, MODEL_ARTIFACT)
+    joblib.dump(best_params_storage, os.path.join(ARTIFACTS_DIR, 'best_params.joblib'))
+
+    # Try MLflow logging (non-fatal)
     try:
-        with mlflow.start_run(run_name=f"train_use_energy_star_{use_energy_star}"):
-            mlflow.log_param("cat_cols_count", int(len(cat_cols)))
-            mlflow.log_param("target_encoder_smoothing", 10 if encoder is not None else None)
-            mlflow.log_param("use_energy_star", use_energy_star)
-            mlflow.log_metric("mape", float(mape))
-            mlflow.log_metric("mae", float(mae))
-            mlflow.log_metric("r2", float(r2))
+        with mlflow.start_run(run_name='stacking_final'):
+            mlflow.log_params({'use_energy_star': use_energy_star, 'random_state': RANDOM_STATE})
+            for k, v in metrics_test.items():
+                mlflow.log_metric(k, float(v))
+            mlflow.log_artifact(MODEL_ARTIFACT)
     except Exception as e:
-        print(f"⚠️ MLflow logging skipped: {str(e)[:100]}")
+        print(f"⚠️ MLflow logging skipped: {e}")
 
-    # Always save model artifact (with or without MLflow)
-    os.makedirs(os.path.dirname(MODEL_ARTIFACT), exist_ok=True)
-    joblib.dump({
-        "model": best,
-        "encoder": encoder,
-        "use_energy_star": use_energy_star
-    }, MODEL_ARTIFACT)
-
-    return best
+    print(f"\n✅ Final stacking model saved to {MODEL_ARTIFACT}")
+    return final_stack, best_params_storage
 
 
 if __name__ == '__main__':
