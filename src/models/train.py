@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import ExtraTreesRegressor
-from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, r2_score
+from sklearn.metrics import mean_absolute_percentage_error, mean_absolute_error, r2_score, mean_squared_error
 import category_encoders as ce
 
 from src.preprocessing.preprocessor import preprocess_data, preprocess_df
@@ -23,12 +23,15 @@ TARGET_COL = "SiteEnergyUse_log"
 
 
 def prepare_xy(df: pd.DataFrame):
+    """Préparation X et y pour la modélisation (notebook 11 - ligne 1190-1198)"""
     cols_to_exclude = [
-        "SiteEnergyUse(kBtu)",
-        "SiteEnergyUse_log",
-        "PropertyGFATotal"
+        "SiteEnergyUse(kBtu)", "SiteEnergyUse_log",
+        "EnergyIntensity", "EnergyIntensity_Log",
+        "PropertyGFATotal",
+        "OSEBuildingID", "DataYear",
+        "ListOfAllPropertyUseTypes", "ListOfAllPropertyUseTypes_clean"
     ]
-    X = df.drop(columns=[c for c in cols_to_exclude if c in df.columns])
+    X = df.drop(columns=[c for c in cols_to_exclude if c in df.columns], errors='ignore')
     y = df[TARGET_COL]
     return X, y
 
@@ -37,6 +40,10 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "default"
     """Charge les données, applique preprocessing + feature engineering,
     entraîne un modèle et logge les métriques + artefacts dans MLflow.
     """
+    # Désactiver le contexte git qui causa des problèmes
+    import os as os_module
+    os_module.environ['MLFLOW_TRACKING_URI'] = 'file:./mlruns'
+    os_module.environ['GIT_PYTHON_GIT_EXECUTABLE'] = ''
 
     mlflow.set_experiment(mlflow_experiment)
 
@@ -71,42 +78,42 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "default"
         'model__max_depth': [None, 10, 20]
     }
 
-    # Use neg_mean_squared_error for GridSearchCV and refit on best score
-    grid = GridSearchCV(pipeline, param_grid, cv=3, scoring='neg_mean_squared_error', n_jobs=-1, refit=True)
+    # Use neg_root_mean_squared_error for GridSearchCV (notebook 11 - ligne 1513)
+    grid = GridSearchCV(pipeline, param_grid, cv=5, scoring='neg_root_mean_squared_error', n_jobs=-1, refit=True)
 
-    with mlflow.start_run(run_name=f"train_use_energy_star_{use_energy_star}"):
-        # Log encoder information
-        mlflow.log_param("cat_cols_count", int(len(cat_cols)))
-        mlflow.log_param("target_encoder_smoothing", 10 if encoder is not None else None)
+    # Train
+    grid.fit(X_train, y_train)
 
-        grid.fit(X_train, y_train)
+    best = grid.best_estimator_
+    y_pred = best.predict(X_test)
 
-        best = grid.best_estimator_
-        y_pred = best.predict(X_test)
+    # back-transform if target is log
+    y_pred_real = np.exp(y_pred)
+    y_test_real = np.exp(y_test)
 
-        # back-transform if target is log
-        y_pred_real = np.exp(y_pred)
-        y_test_real = np.exp(y_test)
+    mape = mean_absolute_percentage_error(y_test_real, y_pred_real)
+    mae = mean_absolute_error(y_test_real, y_pred_real)
+    r2 = r2_score(y_test_real, y_pred_real)
 
-        mape = mean_absolute_percentage_error(y_test_real, y_pred_real)
-        mae = mean_absolute_error(y_test_real, y_pred_real)
-        r2 = r2_score(y_test_real, y_pred_real)
+    # Try to log with MLflow, but don't fail if it doesn't work
+    try:
+        with mlflow.start_run(run_name=f"train_use_energy_star_{use_energy_star}"):
+            mlflow.log_param("cat_cols_count", int(len(cat_cols)))
+            mlflow.log_param("target_encoder_smoothing", 10 if encoder is not None else None)
+            mlflow.log_param("use_energy_star", use_energy_star)
+            mlflow.log_metric("mape", float(mape))
+            mlflow.log_metric("mae", float(mae))
+            mlflow.log_metric("r2", float(r2))
+    except Exception as e:
+        print(f"⚠️ MLflow logging skipped: {str(e)[:100]}")
 
-        mlflow.log_param("use_energy_star", use_energy_star)
-        mlflow.log_param("best_params", grid.best_params_)
-
-        mlflow.log_metric("mape", float(mape))
-        mlflow.log_metric("mae", float(mae))
-        mlflow.log_metric("r2", float(r2))
-
-        # save model artifact
-        os.makedirs(os.path.dirname(MODEL_ARTIFACT), exist_ok=True)
-        joblib.dump({
-            "model": best,
-            "encoder": encoder,
-            "use_energy_star": use_energy_star
-        }, MODEL_ARTIFACT)
-        mlflow.log_artifact(MODEL_ARTIFACT)
+    # Always save model artifact (with or without MLflow)
+    os.makedirs(os.path.dirname(MODEL_ARTIFACT), exist_ok=True)
+    joblib.dump({
+        "model": best,
+        "encoder": encoder,
+        "use_energy_star": use_energy_star
+    }, MODEL_ARTIFACT)
 
     return best
 

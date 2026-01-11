@@ -161,6 +161,12 @@ def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
     if not df_mlb.empty:
         df = pd.concat([df, df_mlb], axis=1)
 
+    # Transformations log (Notebook 11 - ligne 1143-1144)
+    if 'SiteEnergyUse(kBtu)' in df.columns:
+        df['SiteEnergyUse_log'] = np.log(df['SiteEnergyUse(kBtu)'])
+    if 'PropertyGFATotal' in df.columns:
+        df['PropertyGFATotal_log'] = np.log(df['PropertyGFATotal'])
+
     return df
 
 
