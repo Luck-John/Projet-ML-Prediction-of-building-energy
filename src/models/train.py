@@ -203,9 +203,9 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "energy_b
                 mlflow.log_metric(k, float(v))
             mlflow.log_artifact(MODEL_ARTIFACT)
     except Exception as e:
-        print(f"⚠️ MLflow logging skipped: {e}")
+        print(f"MLflow logging skipped: {e}")
 
-    print(f"\n✅ Final stacking model saved to {MODEL_ARTIFACT}")
+    print(f"\n Final stacking model saved to {MODEL_ARTIFACT}")
     return final_stack, best_params_storage
 
 

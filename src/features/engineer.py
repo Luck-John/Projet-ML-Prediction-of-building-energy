@@ -104,7 +104,6 @@ def add_surface_cluster(df: pd.DataFrame) -> pd.DataFrame:
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Pipeline complet de feature engineering
-    Conforme au notebook
     """
     df = add_log_features(df)
     df = add_building_age(df)
