@@ -119,7 +119,10 @@ if __name__ == '__main__':
     for k, v in ref_metrics.items():
         print(f'{k}: {v:.6f}')
 
-    # Save a small report
+    # Save a small report (delete old one first to avoid lock issues)
+    report_path = 'artifacts/compare_report.joblib'
+    if os.path.exists(report_path):
+        os.remove(report_path)
     report = {'notebook': nb_metrics, 'refactored': ref_metrics}
-    joblib.dump(report, 'artifacts/compare_report.joblib')
-    print('\nReport saved to artifacts/compare_report.joblib')
+    joblib.dump(report, report_path)
+    print(f'\nReport saved to {report_path}')

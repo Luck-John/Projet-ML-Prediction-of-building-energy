@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-01-13T09:19:24.768018Z",
+  "sha256": "798394c1971ee2dc08949c7971e6d3d7e5aea60212cf850f629fad82b52e50de",
+  "rows": 1553,
+  "columns": 24,
+  "column_names": [
+    "BuildingType",
+    "PrimaryPropertyType",
+    "ZipCode",
+    "CouncilDistrictCode",
+    "Neighborhood",
+    "NumberofBuildings",
+    "NumberofFloors",
+    "PropertyGFATotal",
+    "PropertyGFAParking",
+    "PropertyGFABuilding(s)",
+    "ListOfAllPropertyUseTypes",
+    "LargestPropertyUseType",
+    "LargestPropertyUseTypeGFA",
+    "ENERGYSTARScore",
+    "SiteEnergyUse(kBtu)",
+    "BuildingAge",
+    "SiteEnergyUse_log",
+    "PropertyGFATotal_log",
+    "Distance_to_Center",
+    "Neighborhood_Cluster",
+    "Is_Downtown",
+    "Rotated_Lat",
+    "Rotated_Lon",
+    "Surface_Cluster"
+  ]
+}

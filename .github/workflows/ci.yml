@@ -32,9 +32,8 @@ jobs:
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           python -m src.models.train
-          python -m src.models.compare_pipelines
       
-      - name: Run tests
+      - name: Run all tests (unit + integration)
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           pytest tests/ -v --tb=short
