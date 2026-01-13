@@ -32,11 +32,22 @@ jobs:
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           python -m src.models.train
-      
+        env:
+          PYTHONPATH: ${{ env.PYTHONPATH }}:$(pwd)
+
+      - name: Debug pytest test discovery
+        run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+          python -m pytest --collect-only -v
+        env:
+          PYTHONPATH: ${{ env.PYTHONPATH }}:$(pwd)
+
       - name: Run all tests (unit + integration)
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-          pytest tests/ -v --tb=short
+          python -m pytest tests/ -v --tb=short
+        env:
+          PYTHONPATH: ${{ env.PYTHONPATH }}:$(pwd)
       
       - name: Upload test results
         if: always()
