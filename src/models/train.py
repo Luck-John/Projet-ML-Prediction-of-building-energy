@@ -58,8 +58,10 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "energy_b
     print("\n" + "=" * 60)
     print("STEP 2: FEATURE ENGINEERING")
     print("=" * 60)
-    df = engineer_features(df)
+    df, kmeans_neighborhood, kmeans_surface = engineer_features(df)
     print(f"[OK] After feature engineering: {df.shape[0]} rows x {df.shape[1]} cols")
+    print(f"[OK] KMeans neighborhood: {type(kmeans_neighborhood).__name__ if kmeans_neighborhood else None}")
+    print(f"[OK] KMeans surface: {type(kmeans_surface).__name__ if kmeans_surface else None}")
     
     # Remove duplicate column names (breaks LightGBM)
     dup_cols = df.columns[df.columns.duplicated()].tolist()
@@ -83,6 +85,10 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "energy_b
     X, y = prepare_for_training(df)
     print(f"[OK] Features shape: {X.shape}")
     print(f"[OK] Target shape: {y.shape}")
+    print(f"[OK] Training columns: {list(X.columns)}")
+    
+    # Save training columns for reference
+    training_columns = list(X.columns)
     
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=RANDOM_STATE
@@ -264,6 +270,9 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "energy_b
     model_dict = {
         'model': final_stack,
         'encoder': encoder,
+        'kmeans_neighborhood': kmeans_neighborhood,
+        'kmeans_surface': kmeans_surface,
+        'training_columns': training_columns,
         'best_params': best_params_storage,
         'target_col': TARGET_COL
     }

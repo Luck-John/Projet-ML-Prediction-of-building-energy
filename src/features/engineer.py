@@ -45,7 +45,7 @@ def engineer_features(df: pd.DataFrame, save_models: bool = True) -> pd.DataFram
         df: Input DataFrame
         save_models: If True, save KMeans models to artifacts/
     
-    Returns: DataFrame with exactly 24 columns for final export
+    Returns: Tuple of (DataFrame with 24 columns, kmeans_neighborhood, kmeans_surface)
     """
     df = df.copy()
     
@@ -124,7 +124,7 @@ def engineer_features(df: pd.DataFrame, save_models: bool = True) -> pd.DataFram
     
     print(f"   [OK] Selected {df.shape[1]} final columns")
     print(f"   [OK] Final shape: {df.shape}")
-    return df
+    return df, kmeans_neighborhood, kmeans_surface
 
 
 def engineer_features_production(df: pd.DataFrame, kmeans_dir: str = ARTIFACTS_DIR) -> pd.DataFrame:

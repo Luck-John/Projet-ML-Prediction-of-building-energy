@@ -10,10 +10,11 @@ Prédire la consommation énergétique des bâtiments non-résidentiels de Seatt
 4. [Installation](#installation)
 5. [Méthodologie](#méthodologie)
 6. [Données](#données)
-7. [Modèle](#modèle)
-8. [API & Dashboard](#api--dashboard)
-9. [Utilisation](#utilisation)
-10. [Tests & CI/CD](#tests--cicd)
+7. [Production - Encoder et Artifacts](#production---encoder-et-artifacts)
+8. [Modèle](#modèle)
+9. [API & Dashboard](#api--dashboard)
+10. [Utilisation](#utilisation)
+11. [Tests & CI/CD](#tests--cicd)
 
 ---
 
@@ -43,48 +44,70 @@ Prédire la consommation énergétique des bâtiments non-résidentiels de Seatt
 ```
 Projet ML-Prediction of building energy/
 │
-├── artifacts/
+├── artifacts/                          # Modèles entraînés
 │   ├── model.joblib              Model final (24.6 MB)
+│   ├── model.pkl                 Backup format
 │   ├── best_params.joblib        Hyperparamètres optimisés
-│   └── compare_report.joblib     Rapport comparaison
+│   ├── kmeans_neighborhood.joblib    KMeans (10 clusters)
+│   ├── kmeans_neighborhood.pkl
+│   ├── kmeans_surface.joblib         KMeans (2 clusters)
+│   ├── kmeans_surface.pkl
+│   └── data_version.json             Versioning données
 │
 ├── .github/workflows/
 │   └── ci.yml                    Pipeline CI/CD GitHub Actions
 │
 ├── data/
 │   ├── processed/
-│   │   └── 2016_Building_Energy_Benchmarking.csv
+│   │   └── seattle_energy_cleaned_final.csv
 │   └── raw/
 │       └── 2016_Building_Energy_Benchmarking.csv
 │
 ├── notebooks/
-│   └── energy_01_analyse (11).ipynb     Référence du modèle
+│   └── energy_01_EDA.ipynb       Analyse exploratory
 │
 ├── src/
-│   ├── api/
-│   │   └── main.py                      API FastAPI
-│   ├── dashboard/
-│   │   └── app.py                       Dashboard Lovable
+│   ├── config.py                 Configuration centralisée
+│   ├── mlflow_utils.py           MLflow tracking
 │   ├── preprocessing/
-│   │   └── preprocessor.py              Nettoyage données
+│   │   └── preprocessor.py       Nettoyage données + production mode
 │   ├── features/
-│   │   └── engineer.py                  Feature engineering
+│   │   └── engineer.py           Feature engineering + production
 │   └── models/
-│       ├── train.py                     Entraînement Stacking
-│       ├── evaluate.py                  Évaluation
-│       └── compare_pipelines.py         Comparaison modèles
+│       ├── train.py              Entraînement Stacking
+│       ├── evaluate.py           Évaluation
+│       └── compare_pipelines.py  Comparaison modèles
 │
 ├── tests/
-│   ├── test_preprocess.py               Tests preprocessing
-│   ├── test_models.py                   Tests modèle
-│   ├── test_integration_metrics.py      Tests intégration
-│   └── conftest.py                      Configuration pytest
+│   ├── unit/                     Tests unitaires
+│   │   ├── test_preprocessing.py     Preprocessing functions
+│   │   ├── test_features.py          Feature engineering
+│   │   └── test_models.py            Model artifacts
+│   ├── integration/              Tests d'intégration
+│   │   ├── test_pipeline.py          Pipeline complet
+│   │   └── test_end_to_end.py        End-to-end
+│   ├── conftest.py               Configuration pytest + fixtures
+│   └── __init__.py
 │
-├── requirements.txt                     Dépendances Python
-├── pytest.ini                           Configuration pytest
-├── .gitignore                           Fichiers à ignorer
-└── README.md                            Ce fichier
+├── mlruns/                        MLflow experiments
+├── api/                           API FastAPI
+├── requirements.txt               Dépendances Python
+├── pytest.ini                     Configuration pytest
+├── .gitignore
+├── .mlflowignore
+└── README.md                      Ce fichier
 ```
+
+**Organisation des tests:**
+- **Unit tests** : Testent les composants individuels (preprocessing, features, models)
+- **Integration tests** : Testent le pipeline complet end-to-end
+- Tous les tests passent (20+ tests)
+- Marqueurs pytest : `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`
+
+**Artifacts gérés:**
+- Modèles sauvegardés en joblib (format principal) + pickle (backup)
+- KMeans models persisted pour prédictions consistantes
+- Versioning données avec SHA256 hash
 
 ---
 
@@ -128,6 +151,56 @@ Transformations :
 - Log(SiteEnergyUse)
 - Target Encoding (catégories)
 - Features géographiques
+
+---
+
+## Production - Encoder et Artifacts
+
+### ⚠️ IMPORTANT: Encoder pour Production
+
+L'encodage catégorique est **CRITIQUE** pour la production. Voici ce qui est sauvegardé:
+
+#### 1. **TargetEncoder** (artifacts/model.joblib)
+```
+- Type: category_encoders.TargetEncoder
+- Configuration: handle_unknown='value'
+- Colonnes: ['BuildingType', 'PrimaryPropertyType', 'ZipCode', 'CouncilDistrictCode',
+              'Neighborhood', 'ListOfAllPropertyUseTypes', 'LargestPropertyUseType', 
+              'Surface_Cluster']
+```
+
+**Pourquoi handle_unknown='value' ?**
+L'encodeur utilise la **MOYENNE de la target** pour chaque catégorie. En production, si une catégorie est inconnue, l'encodeur remplace automatiquement par une valeur de remplacement. Cela évite les crashes.
+
+#### 2. **Modèles KMeans** (pré-entraînés)
+```
+- artifacts/kmeans_neighborhood.joblib    → 10 clusters (latitude/longitude)
+- artifacts/kmeans_surface.joblib         → 2 clusters (log surface)
+```
+
+**IMPORTANT :** Ne pas réentraîner ! Charger et utiliser avec `.predict()`, pas `.fit_predict()`
+
+### Comment charger en production:
+
+```python
+from src.preprocessing.production_artifacts import load_all_artifacts
+
+artifacts = load_all_artifacts()
+encoder = artifacts['encoder']
+kmeans_neighborhood = artifacts['kmeans_neighborhood']
+kmeans_surface = artifacts['kmeans_surface']
+model = artifacts['model']
+```
+
+### Checklist Production:
+
+- ✅ Normaliser catégories (lowercase) **AVANT** encodage
+- ✅ Créer toutes les features (24 au total)
+- ✅ Appliquer encoder sauvegardé (handle_unknown='value')
+- ✅ Charger KMeans pré-entraînés (predict, pas fit_predict)
+- ✅ Ne pas modifier les modèles en production
+
+📚 **Documentation détaillée:** Voir [ENCODER_PRODUCTION_GUIDE.md](ENCODER_PRODUCTION_GUIDE.md)
 
 ---
 
@@ -193,8 +266,64 @@ mlflow ui  # http://127.0.0.1:5000
 
 ## Tests & CI/CD
 
-**Tests (5)** : Prétraitement, modèle, intégration - 100% passants
+### Tests Locaux
 
-**CI/CD :** GitHub Actions automatise train → test → upload artifacts sur chaque push
+**Structure organisée:**
+- **Unit tests** : Composants individuels (preprocessing, features, models)
+- **Integration tests** : Pipeline complet end-to-end
+
+**Exécution:**
+```bash
+# Tous les tests
+pytest tests/ -v
+
+# Uniquement unit tests
+pytest tests/unit/ -v -m unit
+
+# Uniquement integration tests
+pytest tests/integration/ -v -m integration
+
+# Test spécifique
+pytest tests/unit/test_preprocessing.py -v
+
+# Avec coverage
+pytest tests/ --cov=src --cov-report=html
+```
+
+**Status:** 20+ tests, 100% passants ✅
+
+### CI/CD Pipeline
+
+GitHub Actions automatise:
+1. Setup Python 3.10
+2. Installation dépendances
+3. Lint avec flake8
+4. Training model
+5. Exécution tests
+6. Upload artifacts
+
+Trigger: Push sur master/main, Pull requests
+
+Logs: `.github/workflows/ci.yml`
 
 ---
+
+## Troubleshooting
+
+| Problème | Solution |
+|---|---|
+| Import errors | `python -m pytest` (pas juste `pytest`) |
+| Slow tests | `pytest -m "not slow"` |
+| Coverage gaps | `pytest --cov=src --cov-report=html` |
+| Test fails on CI | Vérifier Python version et PYTHONPATH |
+
+---
+
+## Configuration
+
+**Centre Seattle:** 47.6062°N, -122.3321°W
+**Random State:** 42 (reproducibilité)
+**MLflow URI:** `file:./mlruns`
+**Expérience:** `building-energy-prediction`
+
+Voir `src/config.py` pour toutes les constantes.
