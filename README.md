@@ -1,4 +1,4 @@
-﻿# Building Energy Prediction - Seattle
+# Building Energy Prediction - Seattle
 
 Prédire la consommation énergétique des bâtiments non-résidentiels de Seattle avec Machine Learning
 
@@ -10,20 +10,20 @@ Prédire la consommation énergétique des bâtiments non-résidentiels de Seatt
 4. [Installation](#installation)
 5. [Méthodologie](#méthodologie)
 6. [Données](#données)
-7. [Production - Encoder et Artifacts](#production---encoder-et-artifacts)
-8. [Modèle](#modèle)
-9. [API & Dashboard](#api--dashboard)
-10. [Utilisation](#utilisation)
-11. [Tests & CI/CD](#tests--cicd)
+7. [Modèle](#modèle)
+8. [API & Dashboard](#api--dashboard)
+9. [Utilisation](#utilisation)
+10. [Tests & CI/CD](#tests--cicd)
+11. [Ressources](#ressources)
 
 ---
 
 ## Objectif
 
-- Prédire la consommation énergétique (kBtu) des bâtiments non-résidentiels
-- Evaluer l’intérêt de l’ENERGY STAR Score pour la prédiction de consommation d’énergie
-- Dataset : 2016 Building Energy Benchmarking (Seattle) - 1,553 bâtiments
-- Modèle déployé avec API REST (FastAPI) et Dashboard (Lovable)
+* Prédire la consommation énergétique (kBtu) des bâtiments non-résidentiels
+* Evaluer l'intérêt de l'ENERGY STAR Score pour la prédiction de consommation d'énergie
+* Dataset : 2016 Building Energy Benchmarking (Seattle) - 1,553 bâtiments
+* Modèle déployé avec API REST (FastAPI) et Dashboard (Lovable)
 
 ---
 
@@ -44,7 +44,7 @@ Prédire la consommation énergétique des bâtiments non-résidentiels de Seatt
 ```
 Projet ML-Prediction of building energy/
 │
-├── artifacts/                          # Modèles entraînés
+├── artifacts/
 │   ├── model.joblib              Model final (24.6 MB)
 │   ├── model.pkl                 Backup format
 │   ├── best_params.joblib        Hyperparamètres optimisés
@@ -64,7 +64,9 @@ Projet ML-Prediction of building energy/
 │       └── 2016_Building_Energy_Benchmarking.csv
 │
 ├── notebooks/
-│   └── energy_01_EDA.ipynb       Analyse exploratory
+│   ├── energy_01_EDA.ipynb       Analyse exploratory
+│   ├── energy_02_modeling.ipynb  Modèle Stacking
+│   └── comparison_notebook_vs_mlops.ipynb  Comparaison résultats
 │
 ├── src/
 │   ├── config.py                 Configuration centralisée
@@ -78,6 +80,13 @@ Projet ML-Prediction of building energy/
 │       ├── evaluate.py           Évaluation
 │       └── compare_pipelines.py  Comparaison modèles
 │
+├── api/
+│   ├── main.py                   API FastAPI
+│   ├── requirements.txt           Dépendances API
+│   ├── artifacts/
+│   │   └── model.joblib
+│   └── src/
+│
 ├── tests/
 │   ├── unit/                     Tests unitaires
 │   │   ├── test_preprocessing.py     Preprocessing functions
@@ -90,24 +99,12 @@ Projet ML-Prediction of building energy/
 │   └── __init__.py
 │
 ├── mlruns/                        MLflow experiments
-├── api/                           API FastAPI
 ├── requirements.txt               Dépendances Python
 ├── pytest.ini                     Configuration pytest
 ├── .gitignore
 ├── .mlflowignore
 └── README.md                      Ce fichier
 ```
-
-**Organisation des tests:**
-- **Unit tests** : Testent les composants individuels (preprocessing, features, models)
-- **Integration tests** : Testent le pipeline complet end-to-end
-- Tous les tests passent (20+ tests)
-- Marqueurs pytest : `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`
-
-**Artifacts gérés:**
-- Modèles sauvegardés en joblib (format principal) + pickle (backup)
-- KMeans models persisted pour prédictions consistantes
-- Versioning données avec SHA256 hash
 
 ---
 
@@ -136,71 +133,21 @@ pip install -r requirements.txt
 3. **Modèles Testés** : Linéaires, arbres, ensemble (RandomForest, XGBoost, LightGBM)
 4. **Optimisation** : GridSearchCV (CV=5) sur hyperparamètres
 5. **Architecture Finale** : Stacking Regressor (4 base learners + LinearSVR)
-6. **Validation** : 5 tests automatisés passants (100%)
+6. **Validation** : 20+ tests automatisés passants (100%)
 
 ---
 
 ## Données
 
-- Bâtiments non-résidentiels uniquement
-- Suppression outliers : consommation > 2×10⁸ kBtu, surface > 3×10⁶ sqft
-- Imputation ENERGYSTARScore par médiane par type
-- Split : 80% train (1,242), 20% test (311)
+* Bâtiments non-résidentiels uniquement
+* Suppression outliers : consommation > 2×10⁸ kBtu, surface > 3×10⁶ sqft
+* Imputation ENERGYSTARScore par médiane par type
+* Split : 80% train (1,242), 20% test (311)
 
 Transformations :
-- Log(SiteEnergyUse)
-- Target Encoding (catégories)
-- Features géographiques
-
----
-
-## Production - Encoder et Artifacts
-
-### ⚠️ IMPORTANT: Encoder pour Production
-
-L'encodage catégorique est **CRITIQUE** pour la production. Voici ce qui est sauvegardé:
-
-#### 1. **TargetEncoder** (artifacts/model.joblib)
-```
-- Type: category_encoders.TargetEncoder
-- Configuration: handle_unknown='value'
-- Colonnes: ['BuildingType', 'PrimaryPropertyType', 'ZipCode', 'CouncilDistrictCode',
-              'Neighborhood', 'ListOfAllPropertyUseTypes', 'LargestPropertyUseType', 
-              'Surface_Cluster']
-```
-
-**Pourquoi handle_unknown='value' ?**
-L'encodeur utilise la **MOYENNE de la target** pour chaque catégorie. En production, si une catégorie est inconnue, l'encodeur remplace automatiquement par une valeur de remplacement. Cela évite les crashes.
-
-#### 2. **Modèles KMeans** (pré-entraînés)
-```
-- artifacts/kmeans_neighborhood.joblib    → 10 clusters (latitude/longitude)
-- artifacts/kmeans_surface.joblib         → 2 clusters (log surface)
-```
-
-**IMPORTANT :** Ne pas réentraîner ! Charger et utiliser avec `.predict()`, pas `.fit_predict()`
-
-### Comment charger en production:
-
-```python
-from src.preprocessing.production_artifacts import load_all_artifacts
-
-artifacts = load_all_artifacts()
-encoder = artifacts['encoder']
-kmeans_neighborhood = artifacts['kmeans_neighborhood']
-kmeans_surface = artifacts['kmeans_surface']
-model = artifacts['model']
-```
-
-### Checklist Production:
-
-- ✅ Normaliser catégories (lowercase) **AVANT** encodage
-- ✅ Créer toutes les features (24 au total)
-- ✅ Appliquer encoder sauvegardé (handle_unknown='value')
-- ✅ Charger KMeans pré-entraînés (predict, pas fit_predict)
-- ✅ Ne pas modifier les modèles en production
-
-📚 **Documentation détaillée:** Voir [ENCODER_PRODUCTION_GUIDE.md](ENCODER_PRODUCTION_GUIDE.md)
+* Log(SiteEnergyUse)
+* Target Encoding (catégories) avec `handle_unknown='value'` pour production
+* Features géographiques (distance Haversine, clustering)
 
 ---
 
@@ -209,69 +156,108 @@ model = artifacts['model']
 **Architecture :** StackingRegressor
 
 **Base Learners (4) :**
-- ExtraTreesRegressor (n_est=500, max_depth=10)
-- XGBRegressor (n_est=300, learning_rate=0.05, depth=3)
-- LGBMRegressor (n_est=100, learning_rate=0.05, num_leaves=50)
-- HistGradientBoostingRegressor (learning_rate=0.05, max_iter=200)
+* ExtraTreesRegressor (max_depth=10, n_estimators=100)
+* XGBRegressor (learning_rate=0.05, max_depth=3, n_estimators=300)
+* LGBMRegressor (learning_rate=0.05, n_estimators=100, num_leaves=50)
+* HistGradientBoostingRegressor (learning_rate=0.05, max_iter=200)
 
 **Meta-Learner :** LinearSVR (C=10, dual='auto')
 
-**Performance :** MAPE 0.42, R² 0.527, pas overfitting
+**Performance :**
+
+| Métrique | Train | Test |
+|----------|-------|------|
+| **R²** | 0.8697 (87%) | 0.5141 (51%) |
+| **MAPE** | 24.24% | 40.53% |
+| **MAE** | 1.68M kBtu | 2.47M kBtu |
+| **RMSE** | 4.71M kBtu | 7.99M kBtu |
+
+**Artifacts Sauvegardés:**
+* `model.joblib` - Modèle Stacking entraîné
+* `encoder` - TargetEncoder avec handle_unknown='value' (production-ready)
+* `kmeans_geo` - KMeans avec 10 clusters (géographie)
+* `kmeans_surf` - KMeans avec 2 clusters (surface)
+* `training_columns` - Liste des 22 features pour validation
+* `best_params` - Hyperparamètres optimisés
 
 ---
 
 ## API & Dashboard
 
-### API REST (FastAPI)
+### API REST (FastAPI) - PRODUCTION ✅
 
+**🔗 Lien de l'API:** https://api-production-aaf4.up.railway.app/docs
+
+Documentation interactive Swagger UI avec tous les endpoints:
+* `/health` - Vérifier l'état du serveur
+* `/predict` - Prédire la consommation énergétique
+* `/metrics` - Obtenir les métriques du modèle
+
+**Utilisation locale:**
 ```bash
-uvicorn src.api.main:app --reload
+cd api/
+pip install -r requirements.txt
+uvicorn main:app --reload
+# Accès: http://localhost:8000/docs
 ```
 
-Endpoints : `/health`, `/predict`, `/metrics`
-Swagger UI : http://localhost:8000/docs
+### Dashboard Interactif (Lovable)
 
-### Dashboard
+**🔗 Lien du Dashboard:** https://senenergy.lovable.app/
 
-Interface web interactif pour une bonne visualisation des données et des orientations pour la modélisation.
-Accès : https://senenergy.lovable.app/
+Interface web complète avec 5 onglets principaux:
 
-Le dashboard comporte 05 onglets : 
- 	A propos 
-C’est une première vue qui rappelle l’objectif du projet, propose un guide pour les autres onglets, donne certaines spécificités implémentées dans le dashboard (système de multi-filtres avec les variables catégorielles de la base de données,  les analyses intelligentes avec un simple clic de bouton pour obtenir des interprétations détaillées et des recommandations dans le cadre du projet de Machine Learning, la possibilité d’exporter un rapport html avec des visualisations et leurs analyses...). 
+**📋 À Propos**
+- Vue d'ensemble du projet
+- Guide de navigation
+- Fonctionnalités (filtres multi-variables, analyses intelligentes, export rapports HTML)
 
- 	Vue d’ensemble
-Tableau de bord synthétique présentant les indicateurs clés (KPI) de la base de données : nombre de bâtiments, consommation moyenne, score ENERGY STAR moyen et surface moyenne. Inclut des analyses automatiques et des recommandations pour la partie « modèles ».
+**📊 Vue d'Ensemble**
+- KPI Synthétique (nombre bâtiments, consommation moyenne, score ENERGY STAR moyen, surface moyenne)
+- Analyses automatiques et recommandations pour les modèles
 
- 	Analyse univariée
-Dans cet onglet, on fait une exploration de variable individuellement : statistiques descriptives complètes (moyenne, médiane, écart-type, quartiles), histogrammes de distribution. Cela nous permet, pour des variables clés dans le cadre de notre projet, de détecter les outliers, comprendre la forme des distributions et décider des transformations nécessaires.
+**📈 Analyse Univariée**
+- Statistiques descriptives (moyenne, médiane, écart-type, quartiles)
+- Histogrammes de distribution
+- Détection d'outliers et transformations nécessaires
 
- 	Analyse bivariée
-C’est dans cet onglet que l’on fait l’étude des relations entre paires de variables via des nuages de points (scatter plots) et des box plots par catégorie. Cela nous permet d'identifier les prédicteurs potentiels de la consommation énergétique et de valider les hypothèses de linéarité.
+**🔗 Analyse Bivariée**
+- Nuages de points (scatter plots) et box plots par catégorie
+- Identification des prédicteurs potentiels
+- Validation des hypothèses de linéarité
 
- 	Corrélations
-Cet onglet nous permet de faire la visualisation de la matrice de corrélation entre des variables numériques. C’est un très bon outil pour la sélection de features, la détection de multicolinéarité et la compréhension des interdépendances dans la base données.
-
+**📌 Corrélations**
+- Matrice de corrélation entre variables numériques
+- Sélection de features
+- Détection de multicolinéarité
 
 ---
 
 ## Utilisation
 
 ```bash
-# Entraîner
+# Entraîner le modèle
 python -m src.models.train
 
-# Évaluer
+# Évaluer le modèle
 python -m src.models.evaluate
 
-# Comparaison modèles
+# Comparaison de modèles
 python -m src.models.compare_pipelines
 
-# Tests
+# Tests unitaires et intégration
 pytest tests/ -v
+
+# Tests spécifiques
+pytest tests/unit/ -v -m unit
+pytest tests/integration/ -v -m integration
 
 # MLflow tracking
 mlflow ui  # http://127.0.0.1:5000
+
+# API locale
+cd api/
+uvicorn main:app --reload
 ```
 
 ---
@@ -281,8 +267,8 @@ mlflow ui  # http://127.0.0.1:5000
 ### Tests Locaux
 
 **Structure organisée:**
-- **Unit tests** : Composants individuels (preprocessing, features, models)
-- **Integration tests** : Pipeline complet end-to-end
+* **Unit tests** : Composants individuels (preprocessing, features, models)
+* **Integration tests** : Pipeline complet end-to-end
 
 **Exécution:**
 ```bash
@@ -304,7 +290,7 @@ pytest tests/ --cov=src --cov-report=html
 
 **Status:** 20+ tests, 100% passants ✅
 
-### CI/CD Pipeline
+### CI/CD Pipeline (GitHub Actions)
 
 GitHub Actions automatise:
 1. Setup Python 3.10
@@ -320,6 +306,37 @@ Logs: `.github/workflows/ci.yml`
 
 ---
 
+## Ressources
+
+### Documentation & Présentation
+
+* **📊 Présentation du Projet:** [Google Slides](https://docs.google.com/presentation/d/1UvH_sBAgbNlDLXT389NaBemeXAYwR2vWFh43RhTWuHM/edit?usp=sharing)
+* **🔗 API Documentation:** [Swagger UI](https://api-production-aaf4.up.railway.app/docs)
+* **📈 Dashboard:** [Lovable UI](https://senenergy.lovable.app/)
+
+### Notebooks d'Analyse
+
+* `energy_01_EDA.ipynb` - Analyse exploratoire des données
+* `energy_02_modeling.ipynb` - Développement et tuning du modèle Stacking
+* `comparison_notebook_vs_mlops.ipynb` - Validation de la cohérence Notebook vs MLOps
+
+### Repository GitHub
+
+https://github.com/Luck-John/Projet-ML-Prediction-of-building-energy
+
+---
+
+## Configuration
+
+**Centre Seattle:** 47.6062°N, -122.3321°W  
+**Random State:** 42 (reproducibilité)  
+**MLflow URI:** `file:./mlruns`  
+**Expérience:** `building-energy-prediction`  
+
+Voir `src/config.py` pour toutes les constantes.
+
+---
+
 ## Troubleshooting
 
 | Problème | Solution |
@@ -328,14 +345,10 @@ Logs: `.github/workflows/ci.yml`
 | Slow tests | `pytest -m "not slow"` |
 | Coverage gaps | `pytest --cov=src --cov-report=html` |
 | Test fails on CI | Vérifier Python version et PYTHONPATH |
+| API déploiement | Vérifier Railway credentials et variables d'env |
 
 ---
 
-## Configuration
+## License
 
-**Centre Seattle:** 47.6062°N, -122.3321°W
-**Random State:** 42 (reproducibilité)
-**MLflow URI:** `file:./mlruns`
-**Expérience:** `building-energy-prediction`
-
-Voir `src/config.py` pour toutes les constantes.
+MIT License - Voir LICENSE pour détails
