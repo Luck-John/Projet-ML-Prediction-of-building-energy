@@ -231,15 +231,27 @@ uvicorn src.api.main:app --reload
 Endpoints : `/health`, `/predict`, `/metrics`
 Swagger UI : http://localhost:8000/docs
 
-### Dashboard (Lovable)
+### Dashboard
 
-Interface web interactif avec prédictions, visualisations et comparaisons
+Interface web interactif pour une bonne visualisation des données et des orientations pour la modélisation.
+Accès : https://senenergy.lovable.app/
 
-```bash
-streamlit run src/dashboard/app.py
-```
+Le dashboard comporte 05 onglets : 
+ 	A propos 
+C’est une première vue qui rappelle l’objectif du projet, propose un guide pour les autres onglets, donne certaines spécificités implémentées dans le dashboard (système de multi-filtres avec les variables catégorielles de la base de données,  les analyses intelligentes avec un simple clic de bouton pour obtenir des interprétations détaillées et des recommandations dans le cadre du projet de Machine Learning, la possibilité d’exporter un rapport html avec des visualisations et leurs analyses...). 
 
-Accès : http://localhost:8501
+ 	Vue d’ensemble
+Tableau de bord synthétique présentant les indicateurs clés (KPI) de la base de données : nombre de bâtiments, consommation moyenne, score ENERGY STAR moyen et surface moyenne. Inclut des analyses automatiques et des recommandations pour la partie « modèles ».
+
+ 	Analyse univariée
+Dans cet onglet, on fait une exploration de variable individuellement : statistiques descriptives complètes (moyenne, médiane, écart-type, quartiles), histogrammes de distribution. Cela nous permet, pour des variables clés dans le cadre de notre projet, de détecter les outliers, comprendre la forme des distributions et décider des transformations nécessaires.
+
+ 	Analyse bivariée
+C’est dans cet onglet que l’on fait l’étude des relations entre paires de variables via des nuages de points (scatter plots) et des box plots par catégorie. Cela nous permet d'identifier les prédicteurs potentiels de la consommation énergétique et de valider les hypothèses de linéarité.
+
+ 	Corrélations
+Cet onglet nous permet de faire la visualisation de la matrice de corrélation entre des variables numériques. C’est un très bon outil pour la sélection de features, la détection de multicolinéarité et la compréhension des interdépendances dans la base données.
+
 
 ---
 
