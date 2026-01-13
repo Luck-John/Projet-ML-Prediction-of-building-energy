@@ -20,6 +20,7 @@ Prédire la consommation énergétique des bâtiments non-résidentiels de Seatt
 ## Objectif
 
 - Prédire la consommation énergétique (kBtu) des bâtiments non-résidentiels
+- Evaluer l’intérêt de l’ENERGY STAR Score pour la prédiction de consommation d’énergie
 - Dataset : 2016 Building Energy Benchmarking (Seattle) - 1,553 bâtiments
 - Modèle déployé avec API REST (FastAPI) et Dashboard (Lovable)
 
