@@ -194,6 +194,13 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "energy_b
     }
     joblib.dump(model_dict, MODEL_ARTIFACT)
     joblib.dump(best_params_storage, os.path.join(ARTIFACTS_DIR, 'best_params.joblib'))
+    
+    # Also save as pickle (.pkl)
+    import pickle
+    pkl_path = os.path.join(ARTIFACTS_DIR, 'model.pkl')
+    with open(pkl_path, 'wb') as f:
+        pickle.dump(model_dict, f)
+    print(f"Model also saved as pickle: {pkl_path}")
 
     # Try MLflow logging (non-fatal)
     try:
