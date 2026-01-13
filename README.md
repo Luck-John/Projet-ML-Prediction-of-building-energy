@@ -1,38 +1,39 @@
-# 🏢 Building Energy Prediction - Seattle
+# Building Energy Prediction - Seattle
 
 > **Prédire la consommation énergétique des bâtiments non-résidentiels de Seattle avec Machine Learning**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-green)](https://github.com/Luck-John/Projet-ML-Prediction-of-building-energy/actions)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009485.svg)](https://fastapi.tiangolo.com/)
-[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B.svg)](https://streamlit.io/)
+[![Dashboard](https://img.shields.io/badge/Dashboard-Loveable-FF4B4B.svg)](https://loveable.io/)
 
 ---
 
-## 🎯 Objectif du Projet
+## Objectif du Projet
 
 Développer un **modèle de Machine Learning** pour:
-- ✅ Prédire la **consommation énergétique** (SiteEnergyUse en kBtu)
-- ✅ Évaluer la pertinence du **ENERGYSTARScore** dans la prédiction
-- ✅ Fournir une **API REST** et un **dashboard interactif**
-- ✅ Implémenter un **pipeline MLOps** robuste avec CI/CD
+- Prédire la **consommation énergétique** (SiteEnergyUse en kBtu)
+- Évaluer la pertinence du **ENERGYSTARScore** dans la prédiction
+- Fournir une **API REST** et un **dashboard interactif**
+- Implémenter un **pipeline MLOps** robuste avec CI/CD
 
 **Dataset:** 2016 Building Energy Benchmarking (Seattle) - 1,553 bâtiments non-résidentiels
 
 ---
 
-## 👥 Équipe du Projet
+## Équipe du Projet
 
-| Collaborateur | GitHub |
+| Auteurs | GitHub |
 |---|---|
 | Malick SENE | [@malickseneisep2](https://github.com/malickseneisep2) |
 | Ameth FAYE | [@ameth08faye](https://github.com/ameth08faye) |
 | Hildegarde Edima BIYENDA| [@HildaEDIMA](https://github.com/HildaEDIMA) |
 | Albert ZINABA | [@ZINABA-Albert](https://github.com/ZINABA-Albert) |
+| Jean Luc BATABATI | [@Luck-John](https://github.com/Luck-John/) |
 
 ---
 
-## 🚀 Quick Start
+## Installation et Configuration
 
 ### 1️⃣ Installation
 
@@ -59,12 +60,9 @@ uvicorn src.api.main:app --reload
 # → http://localhost:8000/docs (Swagger UI)
 ```
 
-### 3️⃣ Démarrer le Dashboard (Streamlit)
+### 3️⃣ Démarrer le Dashboard lovable
 
-```bash
-streamlit run src/dashboard/app.py
-# → http://localhost:8501
-```
+
 
 ### 4️⃣ Lancer les Tests
 
@@ -131,7 +129,7 @@ Projet ML-Prediction of building energy/
 
 ---
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 ### 1. Cloner le projet
 ```bash
