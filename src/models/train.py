@@ -58,10 +58,8 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "energy_b
     print("\n" + "=" * 60)
     print("STEP 2: FEATURE ENGINEERING")
     print("=" * 60)
-    df, kmeans_neighborhood, kmeans_surface = engineer_features(df)
+    df = engineer_features(df)
     print(f"[OK] After feature engineering: {df.shape[0]} rows x {df.shape[1]} cols")
-    print(f"[OK] KMeans neighborhood: {type(kmeans_neighborhood).__name__ if kmeans_neighborhood else None}")
-    print(f"[OK] KMeans surface: {type(kmeans_surface).__name__ if kmeans_surface else None}")
     
     # Remove duplicate column names (breaks LightGBM)
     dup_cols = df.columns[df.columns.duplicated()].tolist()
@@ -266,12 +264,16 @@ def train_model(use_energy_star: bool = True, mlflow_experiment: str = "energy_b
             except Exception as e:
                 print(f"  [WARN] Could not remove {old_file}: {e}")
     
+    # Load KMeans models (saved by engineer_features)
+    kmeans_geo = joblib.load(os.path.join(ARTIFACTS_DIR, "kmeans_neighborhood.joblib"))
+    kmeans_surf = joblib.load(os.path.join(ARTIFACTS_DIR, "kmeans_surface.joblib"))
+    
     # Save main model
     model_dict = {
         'model': final_stack,
         'encoder': encoder,
-        'kmeans_neighborhood': kmeans_neighborhood,
-        'kmeans_surface': kmeans_surface,
+        'kmeans_geo': kmeans_geo,
+        'kmeans_surf': kmeans_surf,
         'training_columns': training_columns,
         'best_params': best_params_storage,
         'target_col': TARGET_COL

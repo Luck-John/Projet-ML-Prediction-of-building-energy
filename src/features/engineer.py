@@ -124,7 +124,7 @@ def engineer_features(df: pd.DataFrame, save_models: bool = True) -> pd.DataFram
     
     print(f"   [OK] Selected {df.shape[1]} final columns")
     print(f"   [OK] Final shape: {df.shape}")
-    return df, kmeans_neighborhood, kmeans_surface
+    return df
 
 
 def engineer_features_production(df: pd.DataFrame, kmeans_dir: str = ARTIFACTS_DIR) -> pd.DataFrame:
