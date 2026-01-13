@@ -186,7 +186,8 @@ Artifacts Sauvegardés:
 
 ### 8.1 API REST (FastAPI) - PRODUCTION
 
-Lien de l'API: https://api-production-aaf4.up.railway.app/docs
+Liens de l'API: https://api-production-aaf4.up.railway.app/docs
+http://api-production-aaf4.up.railway.app/
 
 Documentation interactive Swagger UI avec tous les endpoints:
 * /health - Vérifier l'état du serveur
@@ -311,7 +312,7 @@ Logs: .github/workflows/ci.yml
 ### Documentation et Présentation
 
 * Présentation du Projet: https://docs.google.com/presentation/d/1UvH_sBAgbNlDLXT389NaBemeXAYwR2vWFh43RhTWuHM/edit?usp=sharing
-* API Documentation: https://api-production-aaf4.up.railway.app/docs
+* API Documentation: http://api-production-aaf4.up.railway.app/; https://api-production-aaf4.up.railway.app/docs
 * Dashboard: https://senenergy.lovable.app/
 
 ### Notebooks d'Analyse
