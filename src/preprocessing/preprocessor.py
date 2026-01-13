@@ -228,6 +228,51 @@ def preprocess_data(path_or_url: str = DATA_URL) -> pd.DataFrame:
     return df
 
 
+def preprocess_data_production(path_or_url: str = DATA_URL) -> pd.DataFrame:
+    """
+    Production preprocessing pipeline WITHOUT target variable.
+    
+    For making predictions on new data where the target is unknown.
+    This function does NOT clean the target or remove target-based outliers.
+    """
+    
+    # Step 1: Load data
+    df = load_data(path_or_url)
+    print(f"[OK] Loaded: {df.shape[0]} rows, {df.shape[1]} cols")
+    
+    # Step 2: Filter non-residential
+    df = filter_non_residential(df)
+    print(f"[OK] Filtered to non-residential: {df.shape[0]} rows")
+    
+    # Step 3: Drop unusable columns (but DO NOT drop target - keep it for reference)
+    # In production, target column will be missing anyway
+    df = drop_unusable_columns(df)
+    
+    # Step 4: Remove duplicates
+    df = remove_duplicates(df)
+    
+    # NOTE: Skip clean_target and remove_outliers (require target variable)
+    
+    # Step 5: Drop sparse columns
+    df = drop_sparse_columns(df)
+    
+    # Step 6: Impute ENERGY STAR
+    df = impute_energy_star(df)
+    
+    # Step 7: Final dropna
+    df = final_dropna(df)
+    print(f"[OK] Handled missing values: {df.shape[0]} rows, {df.shape[1]} cols")
+    
+    # Step 8: Apply log transforms (without target cleaning)
+    df['BuildingAge'] = 2016 - df['YearBuilt']
+    if 'PropertyGFATotal' in df.columns and (df['PropertyGFATotal'] > 0).all():
+        df['PropertyGFATotal_log'] = np.log(df['PropertyGFATotal'])
+    print(f"[OK] Applied log transforms")
+    
+    print(f"[OK] Production preprocessing complete: {df.shape[0]} rows, {df.shape[1]} cols")
+    return df
+
+
 # =====================================================
 # VERSIONNING & EXPORT
 # =====================================================
