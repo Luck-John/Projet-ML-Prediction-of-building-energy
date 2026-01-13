@@ -1,0 +1,12 @@
+# MLflow ignore file
+# These files/directories are not tracked by MLflow
+
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+*.egg-info
+.DS_Store
