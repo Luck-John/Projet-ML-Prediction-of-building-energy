@@ -1,4 +1,5 @@
 import os
+import pickle
 import numpy as np
 import pandas as pd
 import joblib
@@ -68,9 +69,13 @@ def engineer_features(df: pd.DataFrame, save_models: bool = True) -> pd.DataFram
         kmeans_neighborhood = KMeans(n_clusters=10, random_state=42, n_init=10)
         df['Neighborhood_Cluster'] = kmeans_neighborhood.fit_predict(df[['Latitude', 'Longitude']])
         if save_models:
-            model_path = os.path.join(ARTIFACTS_DIR, "kmeans_neighborhood.joblib")
-            joblib.dump(kmeans_neighborhood, model_path)
-            print(f"   [OK] Neighborhood_Cluster created (10 clusters) - saved to {model_path}")
+            # Save in both joblib and pickle formats
+            joblib_path = os.path.join(ARTIFACTS_DIR, "kmeans_neighborhood.joblib")
+            pickle_path = os.path.join(ARTIFACTS_DIR, "kmeans_neighborhood.pkl")
+            joblib.dump(kmeans_neighborhood, joblib_path)
+            with open(pickle_path, 'wb') as f:
+                pickle.dump(kmeans_neighborhood, f)
+            print(f"   [OK] Neighborhood_Cluster created (10 clusters) - saved to {joblib_path} and {pickle_path}")
         else:
             print(f"   [OK] Neighborhood_Cluster created (10 clusters)")
     
@@ -93,9 +98,13 @@ def engineer_features(df: pd.DataFrame, save_models: bool = True) -> pd.DataFram
         df['Surface_Cluster'] = kmeans_surface.fit_predict(df[['PropertyGFATotal_log']])
         df['Surface_Cluster'] = "Surf_Group_" + df['Surface_Cluster'].astype(str)
         if save_models:
-            model_path = os.path.join(ARTIFACTS_DIR, "kmeans_surface.joblib")
-            joblib.dump(kmeans_surface, model_path)
-            print(f"   [OK] Surface_Cluster created (2 groups) - saved to {model_path}")
+            # Save in both joblib and pickle formats
+            joblib_path = os.path.join(ARTIFACTS_DIR, "kmeans_surface.joblib")
+            pickle_path = os.path.join(ARTIFACTS_DIR, "kmeans_surface.pkl")
+            joblib.dump(kmeans_surface, joblib_path)
+            with open(pickle_path, 'wb') as f:
+                pickle.dump(kmeans_surface, f)
+            print(f"   [OK] Surface_Cluster created (2 groups) - saved to {joblib_path} and {pickle_path}")
         else:
             print(f"   [OK] Surface_Cluster created (2 groups)")
     
@@ -143,12 +152,21 @@ def engineer_features_production(df: pd.DataFrame, kmeans_dir: str = ARTIFACTS_D
     
     # 2. Neighborhood Clustering (load pre-trained model)
     neighborhood_model_path = os.path.join(kmeans_dir, "kmeans_neighborhood.joblib")
-    if os.path.exists(neighborhood_model_path) and 'Latitude' in df.columns:
-        kmeans_neighborhood = joblib.load(neighborhood_model_path)
-        df['Neighborhood_Cluster'] = kmeans_neighborhood.predict(df[['Latitude', 'Longitude']])
-        print(f"   [OK] Neighborhood_Cluster created (using pre-trained model)")
-    else:
-        print(f"   [WARNING] Could not load kmeans_neighborhood model from {neighborhood_model_path}")
+    neighborhood_pkl_path = os.path.join(kmeans_dir, "kmeans_neighborhood.pkl")
+    if 'Latitude' in df.columns:
+        kmeans_neighborhood = None
+        if os.path.exists(neighborhood_model_path):
+            kmeans_neighborhood = joblib.load(neighborhood_model_path)
+            print(f"   [OK] Neighborhood_Cluster created (loaded from joblib)")
+        elif os.path.exists(neighborhood_pkl_path):
+            with open(neighborhood_pkl_path, 'rb') as f:
+                kmeans_neighborhood = pickle.load(f)
+            print(f"   [OK] Neighborhood_Cluster created (loaded from pickle)")
+        else:
+            print(f"   [WARNING] Could not load kmeans_neighborhood model")
+        
+        if kmeans_neighborhood:
+            df['Neighborhood_Cluster'] = kmeans_neighborhood.predict(df[['Latitude', 'Longitude']])
     
     # 3. Is_Downtown binary
     if 'Distance_to_Center' in df.columns:
@@ -164,13 +182,22 @@ def engineer_features_production(df: pd.DataFrame, kmeans_dir: str = ARTIFACTS_D
     
     # 5. Surface Clustering (load pre-trained model)
     surface_model_path = os.path.join(kmeans_dir, "kmeans_surface.joblib")
-    if os.path.exists(surface_model_path) and 'PropertyGFATotal_log' in df.columns:
-        kmeans_surface = joblib.load(surface_model_path)
-        df['Surface_Cluster'] = kmeans_surface.predict(df[['PropertyGFATotal_log']])
-        df['Surface_Cluster'] = "Surf_Group_" + df['Surface_Cluster'].astype(str)
-        print(f"   [OK] Surface_Cluster created (using pre-trained model)")
-    else:
-        print(f"   [WARNING] Could not load kmeans_surface model from {surface_model_path}")
+    surface_pkl_path = os.path.join(kmeans_dir, "kmeans_surface.pkl")
+    if 'PropertyGFATotal_log' in df.columns:
+        kmeans_surface = None
+        if os.path.exists(surface_model_path):
+            kmeans_surface = joblib.load(surface_model_path)
+            print(f"   [OK] Surface_Cluster created (loaded from joblib)")
+        elif os.path.exists(surface_pkl_path):
+            with open(surface_pkl_path, 'rb') as f:
+                kmeans_surface = pickle.load(f)
+            print(f"   [OK] Surface_Cluster created (loaded from pickle)")
+        else:
+            print(f"   [WARNING] Could not load kmeans_surface model")
+        
+        if kmeans_surface:
+            df['Surface_Cluster'] = kmeans_surface.predict(df[['PropertyGFATotal_log']])
+            df['Surface_Cluster'] = "Surf_Group_" + df['Surface_Cluster'].astype(str)
     
     # 6. Select final columns
     final_columns = [
