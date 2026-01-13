@@ -23,27 +23,29 @@ from src.features.engineer import (
 @pytest.fixture
 def sample_preprocessed_data():
     """Create sample preprocessed data for testing."""
+    # Need at least 10 samples for 10-cluster KMeans
+    n_samples = 15
     return pd.DataFrame({
-        'BuildingType': ['Office', 'Office', 'Retail'],
-        'PrimaryPropertyType': ['Office', 'Office', 'Retail'],
-        'ZipCode': [98101, 98102, 98103],
-        'CouncilDistrictCode': [1, 2, 3],
-        'Neighborhood': ['Downtown', 'Capitol Hill', 'Fremont'],
-        'NumberofBuildings': [1, 1, 1],
-        'NumberofFloors': [10, 5, 3],
-        'PropertyGFATotal': [50000.0, 30000.0, 15000.0],
-        'PropertyGFAParking': [5000.0, 3000.0, 1500.0],
-        'PropertyGFABuilding(s)': [45000.0, 27000.0, 13500.0],
-        'ListOfAllPropertyUseTypes': ['Office', 'Office', 'Retail'],
-        'LargestPropertyUseType': ['Office', 'Office', 'Retail'],
-        'LargestPropertyUseTypeGFA': [45000.0, 27000.0, 13500.0],
-        'ENERGYSTARScore': [75.0, 80.0, 65.0],
-        'SiteEnergyUse(kBtu)': [200000.0, 150000.0, 50000.0],
-        'BuildingAge': [15, 20, 10],
-        'SiteEnergyUse_log': [12.2, 11.9, 10.8],
-        'PropertyGFATotal_log': [10.8, 10.3, 9.6],
-        'Latitude': [47.6062, 47.6205, 47.6552],
-        'Longitude': [-122.3321, -122.3212, -122.3554],
+        'BuildingType': ['Office'] * n_samples,
+        'PrimaryPropertyType': ['Office'] * n_samples,
+        'ZipCode': [98101 + i for i in range(n_samples)],
+        'CouncilDistrictCode': list(range(1, n_samples + 1)),
+        'Neighborhood': [f'Neighborhood_{i}' for i in range(n_samples)],
+        'NumberofBuildings': [1] * n_samples,
+        'NumberofFloors': [5 + i for i in range(n_samples)],
+        'PropertyGFATotal': [30000.0 + i * 5000 for i in range(n_samples)],
+        'PropertyGFAParking': [3000.0 + i * 500 for i in range(n_samples)],
+        'PropertyGFABuilding(s)': [27000.0 + i * 4500 for i in range(n_samples)],
+        'ListOfAllPropertyUseTypes': ['Office'] * n_samples,
+        'LargestPropertyUseType': ['Office'] * n_samples,
+        'LargestPropertyUseTypeGFA': [27000.0 + i * 4500 for i in range(n_samples)],
+        'ENERGYSTARScore': [70.0 + i for i in range(n_samples)],
+        'SiteEnergyUse(kBtu)': [150000.0 + i * 10000 for i in range(n_samples)],
+        'BuildingAge': [15 + i for i in range(n_samples)],
+        'SiteEnergyUse_log': [11.9 + i * 0.1 for i in range(n_samples)],
+        'PropertyGFATotal_log': [10.3 + i * 0.05 for i in range(n_samples)],
+        'Latitude': [47.6062 + i * 0.01 for i in range(n_samples)],
+        'Longitude': [-122.3321 + i * 0.01 for i in range(n_samples)],
     })
 
 
