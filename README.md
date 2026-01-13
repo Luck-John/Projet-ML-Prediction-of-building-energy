@@ -207,6 +207,7 @@ uvicorn main:app --reload
 
 Interface web complète avec 5 onglets principaux:
 
+<<<<<<< HEAD
 **📋 À Propos**
 - Vue d'ensemble du projet
 - Guide de navigation
@@ -225,6 +226,53 @@ Interface web complète avec 5 onglets principaux:
 - Nuages de points (scatter plots) et box plots par catégorie
 - Identification des prédicteurs potentiels
 - Validation des hypothèses de linéarité
+=======
+## Description du dashboard
+
+Le dashboard comporte **05 onglets** :
+
+### À propos
+C’est une première vue qui rappelle l’objectif du projet.  
+Elle propose un guide pour les autres onglets et présente certaines spécificités implémentées dans le dashboard, notamment :
+- un **système de multi-filtres** avec les variables catégorielles de la base de données ;
+- des **analyses intelligentes** accessibles via un simple clic de bouton pour obtenir des interprétations détaillées et des recommandations dans le cadre du projet de *Machine Learning* ;
+- la **possibilité d’exporter un rapport HTML** contenant les visualisations et leurs analyses.
+
+### Vue d’ensemble
+Tableau de bord synthétique présentant les **indicateurs clés (KPI)** de la base de données :
+- nombre de bâtiments ;
+- consommation moyenne ;
+- score **ENERGY STAR** moyen ;
+- surface moyenne.
+
+Cet onglet inclut également des **analyses automatiques** et des **recommandations** pour la partie *modèles*.
+
+### Analyse univariée
+Cet onglet est dédié à l’exploration des variables prises individuellement :
+- statistiques descriptives complètes (moyenne, médiane, écart-type, quartiles) ;
+- histogrammes de distribution.
+
+Il permet, pour les variables clés du projet, de :
+- détecter les **outliers** ;
+- comprendre la **forme des distributions** ;
+- décider des **transformations nécessaires**.
+
+### Analyse bivariée
+Cet onglet permet d’étudier les relations entre paires de variables à l’aide de :
+- nuages de points (*scatter plots*) ;
+- box plots par catégorie.
+
+L’objectif est :
+- d’identifier les **prédicteurs potentiels** de la consommation énergétique ;
+- de valider les **hypothèses de linéarité**.
+
+### Corrélations
+Cet onglet permet de visualiser la **matrice de corrélation** entre les variables numériques.  
+C’est un outil essentiel pour :
+- la **sélection de features** ;
+- la détection de la **multicolinéarité** ;
+- la compréhension des **interdépendances** au sein de la base de données.
+>>>>>>> bad5c2e97570a316bcc3d25e1bdc4568d2b1d7dc
 
 **📌 Corrélations**
 - Matrice de corrélation entre variables numériques
