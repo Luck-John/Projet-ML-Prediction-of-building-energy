@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Seattle Energy Consumption Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 12px;
+            width: 100%;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1e40af;
+        }
+        #result {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #e0f2fe;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Prédiction de Consommation Énergétique</h1>
+
+<form id="predictionForm">
+    <label>Building Type</label>
+    <input type="text" name="BuildingType" required>
+
+    <label>Primary Property Type</label>
+    <input type="text" name="PrimaryPropertyType" required>
+
+    <label>Zip Code</label>
+    <input type="text" name="ZipCode" required>
+
+    <label>Council District Code</label>
+    <input type="text" name="CouncilDistrictCode" required>
+
+    <label>Neighborhood</label>
+    <input type="text" name="Neighborhood" required>
+
+    <label>Largest Property Use Type</label>
+    <input type="text" name="LargestPropertyUseType" required>
+
+    <label>List Of All Property Use Types</label>
+    <input type="text" name="ListOfAllPropertyUseTypes" required>
+
+    <label>Number of Buildings</label>
+    <input type="number" name="NumberofBuildings" required>
+
+    <label>Number of Floors</label>
+    <input type="number" step="0.1" name="NumberofFloors" required>
+
+    <label>Property GFA Total</label>
+    <input type="number" step="0.1" name="PropertyGFATotal" required>
+
+    <label>Property GFA Parking</label>
+    <input type="number" step="0.1" name="PropertyGFAParking" required>
+
+    <label>Property GFA Buildings</label>
+    <input type="number" step="0.1" name="PropertyGFABuilding(s)" required>
+
+    <label>Largest Property Use Type GFA</label>
+    <input type="number" step="0.1" name="LargestPropertyUseTypeGFA" required>
+
+    <label>ENERGY STAR Score</label>
+    <input type="number" step="0.1" name="ENERGYSTARScore" required>
+
+    <label>Latitude</label>
+    <input type="number" step="0.0001" name="Latitude" required>
+
+    <label>Longitude</label>
+    <input type="number" step="0.0001" name="Longitude" required>
+
+    <label>Year Built</label>
+    <input type="number" name="YearBuilt" required>
+
+    <button type="submit">Prédire</button>
+</form>
+
+<div id="result"></div>
+
+<script>
+const API_URL = "https://TON-LIEN-RAILWAY.up.railway.app/predict";
+
+document.getElementById("predictionForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const payload = {};
+
+    formData.forEach((value, key) => {
+        payload[key] = isNaN(value) ? value : Number(value);
+    });
+
+    const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const resultDiv = document.getElementById("result");
+
+    if (!response.ok) {
+        resultDiv.style.display = "block";
+        resultDiv.innerHTML = "<strong>Erreur lors de la prédiction</strong>";
+        return;
+    }
+
+    const data = await response.json();
+
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = `
+        <h3>Résultat</h3>
+        <p><strong>Consommation estimée (kBtu) :</strong> ${data.predicted_energy_consumption_kBtu.toFixed(2)}</p>
+        <p><strong>Valeur log :</strong> ${data.predicted_energy_consumption_log.toFixed(4)}</p>
+        <p><strong>Âge du bâtiment :</strong> ${data.building_age} ans</p>
+        <p><strong>Horodatage :</strong> ${data.timestamp}</p>
+    `;
+});
+</script>
+
+</body>
+</html>
