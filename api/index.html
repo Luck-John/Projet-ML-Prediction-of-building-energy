@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seattle Energy Consumption Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        h1 {
+            color: white;
+            font-size: 2.5em;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1em;
+            font-weight: 300;
+        }
+        
+        form {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 5px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #334155;
+            font-size: 0.95em;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+        
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23334155' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            padding-right: 40px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            margin-top: 30px;
+            padding: 16px;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        #result {
+            margin-top: 30px;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            display: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        #result h3 {
+            color: #1e293b;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-item strong {
+            color: #0c4a6e;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .result-value {
+            font-size: 1.3em;
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        .error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-left-color: #dc2626;
+        }
+        
+        .error h3 {
+            color: #991b1b;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section-title {
+            font-size: 1.3em;
+            color: #667eea;
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            form {
+                padding: 25px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 Seattle Energy Prediction</h1>
+            <p class="subtitle">Prédiction intelligente de la consommation énergétique</p>
+        </header>
+
+        <form id="predictionForm">
+            <h2 class="section-title">📋 Informations Générales</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Building Type</label>
+                    <select name="BuildingType" required>
+                        <option value="">Sélectionnez...</option>
+                        <option value="Campus">Campus</option>
+                        <option value="NonResidential">NonResidential</option>
+                        <option value="Nonresidential COS">Nonresidential COS</option>
+                        <option value="SPS-District K-12">SPS-District K-12</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Primary Property Type</label>
+                    <select name="PrimaryPropertyType" required>
+                        <option value="">Sélectionnez...</option>
+                        <option value="Distribution Center">Distribution Center</option>
+                        <option value="Hospital">Hospital</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="K-12 School">K-12 School</option>
+                        <option value="Large Office">Large Office</option>
+                        <option value="Low-Rise Multifamily">Low-Rise Multifamily</option>
+                        <option value="Medical Office">Medical Office</option>
+                        <option value="Mixed Use Property">Mixed Use Property</option>
+                        <option value="Other">Other</option>
+                        <option value="Refrigerated Warehouse">Refrigerated Warehouse</option>
+                        <option value="Residence Hall">Residence Hall</option>
+                        <option value="Retail Store">Retail Store</option>
+                        <option value="Senior Care Community">Senior Care Community</option>
+                        <option value="Small-and Mid-Sized Office">Small-and Mid-Sized Office</option>
+                        <option value="Supermarket / Grocery Store">Supermarket / Grocery Store</option>
+                        <option value="Warehouse">Warehouse</option>
+                        <option value="Worship Facility">Worship Facility</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Zip Code</label>
+                    <input type="text" name="ZipCode" placeholder="Ex: 98101" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Council District Code</label>
+                    <input type="text" name="CouncilDistrictCode" placeholder="Ex: 7" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Neighborhood</label>
+                    <select name="Neighborhood" required>
+                        <option value="">Sélectionnez...</option>
+                        <option value="BALLARD">BALLARD</option>
+                        <option value="CENTRAL">CENTRAL</option>
+                        <option value="DELRIDGE">DELRIDGE</option>
+                        <option value="DOWNTOWN">DOWNTOWN</option>
+                        <option value="EAST">EAST</option>
+                        <option value="GREATER DUWAMISH">GREATER DUWAMISH</option>
+                        <option value="LAKE UNION">LAKE UNION</option>
+                        <option value="MAGNOLIA / QUEEN ANNE">MAGNOLIA / QUEEN ANNE</option>
+                        <option value="NORTH">NORTH</option>
+                        <option value="NORTHEAST">NORTHEAST</option>
+                        <option value="NORTHWEST">NORTHWEST</option>
+                        <option value="SOUTHEAST">SOUTHEAST</option>
+                        <option value="SOUTHWEST">SOUTHWEST</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Year Built</label>
+                    <input type="number" name="YearBuilt" placeholder="Ex: 1990" required>
+                </div>
+            </div>
+
+            <h2 class="section-title">🗂️ Caractéristiques du Bâtiment</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Largest Property Use Type</label>
+                    <select name="LargestPropertyUseType" required>
+                        <option value="">Sélectionnez...</option>
+                        <option value="Adult Education">Adult Education</option>
+                        <option value="Automobile Dealership">Automobile Dealership</option>
+                        <option value="Bank Branch">Bank Branch</option>
+                        <option value="Courthouse">Courthouse</option>
+                        <option value="Data Center">Data Center</option>
+                        <option value="Distribution Center">Distribution Center</option>
+                        <option value="Financial Office">Financial Office</option>
+                        <option value="Fire Station">Fire Station</option>
+                        <option value="Fitness Center/Health Club/Gym">Fitness Center/Health Club/Gym</option>
+                        <option value="Food Service">Food Service</option>
+                        <option value="Hospital (General Medical & Surgical)">Hospital (General Medical & Surgical)</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="K-12 School">K-12 School</option>
+                        <option value="Laboratory">Laboratory</option>
+                        <option value="Library">Library</option>
+                        <option value="Lifestyle Center">Lifestyle Center</option>
+                        <option value="Manufacturing/Industrial Plant">Manufacturing/Industrial Plant</option>
+                        <option value="Medical Office">Medical Office</option>
+                        <option value="Movie Theater">Movie Theater</option>
+                        <option value="Museum">Museum</option>
+                        <option value="Multifamily Housing">Multifamily Housing</option>
+                        <option value="Non-Refrigerated Warehouse">Non-Refrigerated Warehouse</option>
+                        <option value="Office">Office</option>
+                        <option value="Other">Other</option>
+                        <option value="Other - Education">Other - Education</option>
+                        <option value="Other - Entertainment/Public Assembly">Other - Entertainment/Public Assembly</option>
+                        <option value="Other - Lodging/Residential">Other - Lodging/Residential</option>
+                        <option value="Other - Mall">Other - Mall</option>
+                        <option value="Other - Public Services">Other - Public Services</option>
+                        <option value="Other - Recreation">Other - Recreation</option>
+                        <option value="Other - Restaurant/Bar">Other - Restaurant/Bar</option>
+                        <option value="Other - Services">Other - Services</option>
+                        <option value="Other - Utility">Other - Utility</option>
+                        <option value="Other/Specialty Hospital">Other/Specialty Hospital</option>
+                        <option value="Parking">Parking</option>
+                        <option value="Performing Arts">Performing Arts</option>
+                        <option value="Personal Services (Health/Beauty, Dry Cleaning, etc)">Personal Services (Health/Beauty, Dry Cleaning, etc)</option>
+                        <option value="Police Station">Police Station</option>
+                        <option value="Pre-school/Daycare">Pre-school/Daycare</option>
+                        <option value="Refrigerated Warehouse">Refrigerated Warehouse</option>
+                        <option value="Repair Services (Vehicle, Shoe, Locksmith, etc)">Repair Services (Vehicle, Shoe, Locksmith, etc)</option>
+                        <option value="Residence Hall/Dormitory">Residence Hall/Dormitory</option>
+                        <option value="Residential Care Facility">Residential Care Facility</option>
+                        <option value="Restaurant">Restaurant</option>
+                        <option value="Retail Store">Retail Store</option>
+                        <option value="Senior Care Community">Senior Care Community</option>
+                        <option value="Social/Meeting Hall">Social/Meeting Hall</option>
+                        <option value="Strip Mall">Strip Mall</option>
+                        <option value="Supermarket/Grocery Store">Supermarket/Grocery Store</option>
+                        <option value="Urgent Care/Clinic/Other Outpatient">Urgent Care/Clinic/Other Outpatient</option>
+                        <option value="Wholesale Club/Supercenter">Wholesale Club/Supercenter</option>
+                        <option value="Worship Facility">Worship Facility</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>List Of All Property Use Types</label>
+                    <select name="ListOfAllPropertyUseTypes" required>
+                        <option value="">Sélectionnez...</option>
+                        <option value="Adult Education">Adult Education</option>
+                        <option value="Automobile Dealership">Automobile Dealership</option>
+                        <option value="Bank Branch">Bank Branch</option>
+                        <option value="Bar/Nightclub">Bar/Nightclub</option>
+                        <option value="College/University">College/University</option>
+                        <option value="Convenience Store without Gas Station">Convenience Store without Gas Station</option>
+                        <option value="Courthouse">Courthouse</option>
+                        <option value="Data Center">Data Center</option>
+                        <option value="Distribution Center">Distribution Center</option>
+                        <option value="Enclosed Mall">Enclosed Mall</option>
+                        <option value="Financial Office">Financial Office</option>
+                        <option value="Fire Station">Fire Station</option>
+                        <option value="Fitness Center/Health Club/Gym">Fitness Center/Health Club/Gym</option>
+                        <option value="Food Sales">Food Sales</option>
+                        <option value="Food Service">Food Service</option>
+                        <option value="Hospital (General Medical & Surgical)">Hospital (General Medical & Surgical)</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="K-12 School">K-12 School</option>
+                        <option value="Laboratory">Laboratory</option>
+                        <option value="Library">Library</option>
+                        <option value="Lifestyle Center">Lifestyle Center</option>
+                        <option value="Manufacturing/Industrial Plant">Manufacturing/Industrial Plant</option>
+                        <option value="Medical Office">Medical Office</option>
+                        <option value="Movie Theater">Movie Theater</option>
+                        <option value="Museum">Museum</option>
+                        <option value="Multifamily Housing">Multifamily Housing</option>
+                        <option value="Non-Refrigerated Warehouse">Non-Refrigerated Warehouse</option>
+                        <option value="Office">Office</option>
+                        <option value="Other">Other</option>
+                        <option value="Other - Education">Other - Education</option>
+                        <option value="Other - Entertainment/Public Assembly">Other - Entertainment/Public Assembly</option>
+                        <option value="Other - Lodging/Residential">Other - Lodging/Residential</option>
+                        <option value="Other - Mall">Other - Mall</option>
+                        <option value="Other - Public Services">Other - Public Services</option>
+                        <option value="Other - Recreation">Other - Recreation</option>
+                        <option value="Other - Restaurant/Bar">Other - Restaurant/Bar</option>
+                        <option value="Other - Services">Other - Services</option>
+                        <option value="Other - Technology/Science">Other - Technology/Science</option>
+                        <option value="Other - Utility">Other - Utility</option>
+                        <option value="Other/Specialty Hospital">Other/Specialty Hospital</option>
+                        <option value="Outpatient Rehabilitation/Physical Therapy">Outpatient Rehabilitation/Physical Therapy</option>
+                        <option value="Parking">Parking</option>
+                        <option value="Performing Arts">Performing Arts</option>
+                        <option value="Personal Services (Health/Beauty, Dry Cleaning, etc)">Personal Services (Health/Beauty, Dry Cleaning, etc)</option>
+                        <option value="Police Station">Police Station</option>
+                        <option value="Pre-school/Daycare">Pre-school/Daycare</option>
+                        <option value="Refrigerated Warehouse">Refrigerated Warehouse</option>
+                        <option value="Repair Services (Vehicle, Shoe, Locksmith, etc)">Repair Services (Vehicle, Shoe, Locksmith, etc)</option>
+                        <option value="Residence Hall/Dormitory">Residence Hall/Dormitory</option>
+                        <option value="Residential Care Facility">Residential Care Facility</option>
+                        <option value="Restaurant">Restaurant</option>
+                        <option value="Retail Store">Retail Store</option>
+                        <option value="Self-Storage Facility">Self-Storage Facility</option>
+                        <option value="Senior Care Community">Senior Care Community</option>
+                        <option value="Single Family Home">Single Family Home</option>
+                        <option value="Social/Meeting Hall">Social/Meeting Hall</option>
+                        <option value="Strip Mall">Strip Mall</option>
+                        <option value="Supermarket/Grocery Store">Supermarket/Grocery Store</option>
+                        <option value="Swimming Pool">Swimming Pool</option>
+                        <option value="Urgent Care/Clinic/Other Outpatient">Urgent Care/Clinic/Other Outpatient</option>
+                        <option value="Vocational School">Vocational School</option>
+                        <option value="Wholesale Club/Supercenter">Wholesale Club/Supercenter</option>
+                        <option value="Worship Facility">Worship Facility</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Number of Buildings</label>
+                    <input type="number" name="NumberofBuildings" placeholder="Ex: 1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Number of Floors</label>
+                    <input type="number" step="0.1" name="NumberofFloors" placeholder="Ex: 10.5" required>
+                </div>
+            </div>
+
+            <h2 class="section-title">📏 Surfaces (GFA)</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Property GFA Total (sq ft)</label>
+                    <input type="number" step="0.1" name="PropertyGFATotal" placeholder="Ex: 50000" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Property GFA Parking (sq ft)</label>
+                    <input type="number" step="0.1" name="PropertyGFAParking" placeholder="Ex: 10000" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Property GFA Buildings (sq ft)</label>
+                    <input type="number" step="0.1" name="PropertyGFABuilding(s)" placeholder="Ex: 40000" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Largest Property Use Type GFA (sq ft)</label>
+                    <input type="number" step="0.1" name="LargestPropertyUseTypeGFA" placeholder="Ex: 40000" required>
+                </div>
+            </div>
+
+            <h2 class="section-title">⭐ Performance & Localisation</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>ENERGY STAR Score</label>
+                    <input type="number" step="0.1" name="ENERGYSTARScore" placeholder="Ex: 75" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Latitude</label>
+                    <input type="number" step="0.0001" name="Latitude" placeholder="Ex: 47.6062" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Longitude</label>
+                    <input type="number" step="0.0001" name="Longitude" placeholder="Ex: -122.3321" required>
+                </div>
+            </div>
+
+            <button type="submit">Lancer la Prédiction</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_URL = "/predict";
+
+        document.getElementById("predictionForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const payload = {};
+
+            formData.forEach((value, key) => {
+                payload[key] = isNaN(value) ? value : Number(value);
+            });
+
+            const resultDiv = document.getElementById("result");
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = "⏳ Calcul en cours...";
+            resultDiv.style.display = "block";
+            resultDiv.className = "loading";
+            resultDiv.innerHTML = '<div class="loading-spinner"></div><p style="color: #64748b; font-size: 1.1em;">Analyse des données en cours...</p>';
+
+            setTimeout(() => {
+                resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                resultDiv.className = "";
+                resultDiv.innerHTML = `
+                    <h3>✅ Prédiction Réussie</h3>
+                    
+                    <div class="result-item">
+                        <strong>💡 Consommation Énergétique Estimée</strong>
+                        <div class="result-value">${data.predicted_energy_consumption_kBtu.toLocaleString('fr-FR', {maximumFractionDigits: 2})} kBtu</div>
+                    </div>
+                    
+                `;
+            } catch (error) {
+                resultDiv.className = "error";
+                resultDiv.innerHTML = `
+                    <h3>❌ Erreur de Prédiction</h3>
+                    <div class="result-item error">
+                        <strong>Une erreur s'est produite</strong>
+                        <p style="margin-top: 10px; color: #991b1b;">${error.message}</p>
+                        <p style="margin-top: 10px; font-size: 0.9em; color: #7f1d1d;">Veuillez vérifier vos données et réessayer.</p>
+                    </div>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "🚀 Lancer la Prédiction";
+            }
+        });
+    </script>
+</body>
+</html>
